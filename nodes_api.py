@@ -1,7 +1,5 @@
-import os
 import io
 from inspect import cleandoc
-import logging
 
 from comfy.utils import common_upscale
 from comfy.comfy_types.node_typing import IO, ComfyNodeABC, InputTypeDict
@@ -18,8 +16,6 @@ import requests
 import torch
 import math
 import base64
-import time
-import json
 
 
 def downscale_input(image):
@@ -70,10 +66,8 @@ def validate_and_cast_response(response):
 
 class GPTImage1Generate(ComfyNodeABC):
     """
-    Generates images synchronously via OpenAI's GPT Image 1 endpoint.
-
-    Uses the proxy at /proxy/openai/images/generations. Returned URLs are short‑lived,
-    so download or cache results if you need to keep them.
+    comfyui-gpt-image ports the official ComfyUI GPT-API node,
+    adding support for customizable api_base, auth_token, and model settings.
     """
 
     def __init__(self):
@@ -186,7 +180,7 @@ class GPTImage1Generate(ComfyNodeABC):
 
     RETURN_TYPES = (IO.IMAGE,)
     FUNCTION = "api_call"
-    CATEGORY = "GPT Image 1 Generate Node"
+    CATEGORY = "Port ComfyUI GPT Image 1 Node"
     DESCRIPTION = cleandoc(__doc__ or "")
     # API_NODE = True
 
