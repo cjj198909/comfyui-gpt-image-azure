@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-gpt-image"
+description = "Ports the official ComfyUI GPT-API node, adding support for customizable api_base, auth_token, and model settings."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/lceric/comfyui-gpt-image"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = "lceric"
+DisplayName = "comfyui-gpt-image"
+Icon = ""
