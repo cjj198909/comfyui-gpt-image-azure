@@ -186,7 +186,7 @@ class GPTImage1Generate(ComfyNodeABC):
 
     RETURN_TYPES = (IO.IMAGE,)
     FUNCTION = "api_call"
-    CATEGORY = "SEM GPT-Api Node"
+    CATEGORY = "GPT Image 1 Generate Node"
     DESCRIPTION = cleandoc(__doc__ or "")
     # API_NODE = True
 

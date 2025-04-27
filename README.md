@@ -20,12 +20,15 @@ Clone the repository into ComfyUI's custom_nodes directory:
 
 ```bash
 cd ComfyUI/custom_nodes
+
 git clone https://github.com/lceric/comfyui-gpt-image
+
 Install the required Python dependencies:
 ```
 
 ```bash
 cd comfyui-gpt-image
+
 pip install -r requirements.txt
 ```
 
@@ -35,7 +38,13 @@ Restart ComfyUI. The new GPT node will be automatically loaded and available for
 
 Here’s a quick look at the GPT-API node inside ComfyUI:
 
-(Tip: Replace ./assets/preview.png with your actual screenshot path.)
+**生成图片**
+
+![生成图片](example/gpt-image.png)
+
+**编辑图片**
+
+![生成图片](example/gpt-image-mask.png)
 
 ### Usage
 
