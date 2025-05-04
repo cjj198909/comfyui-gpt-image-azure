@@ -22,9 +22,9 @@ Clone the repository into ComfyUI's custom_nodes directory:
 cd ComfyUI/custom_nodes
 
 git clone https://github.com/lceric/comfyui-gpt-image
+```
 
 Install the required Python dependencies:
-```
 
 ```bash
 cd comfyui-gpt-image
