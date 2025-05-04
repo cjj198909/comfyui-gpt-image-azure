@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-gpt-image"
 description = "Ports the official ComfyUI GPT-API node, adding support for customizable api_base, auth_token, and model settings."
-version = "1.0.0"
+version = "1.1.0"
 license = {file = "LICENSE"}
 dependencies = []
 
