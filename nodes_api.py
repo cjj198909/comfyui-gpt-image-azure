@@ -10,12 +10,12 @@ from PIL import Image
 
 from comfy.comfy_types.node_typing import IO, ComfyNodeABC, InputTypeDict
 from comfy.utils import common_upscale
-from comfy_api_nodes.apis import (
+from .apis import (
     OpenAIImageEditRequest,
     OpenAIImageGenerationRequest,
     OpenAIImageGenerationResponse,
 )
-from comfy_api_nodes.apis.client import ApiEndpoint, HttpMethod, SynchronousOperation
+from .apis.client import ApiEndpoint, HttpMethod, SynchronousOperation
 
 
 def downscale_input(image):
@@ -198,7 +198,7 @@ class GPTImage1Generate(ComfyNodeABC):
     FUNCTION = "api_call"
     CATEGORY = "Port ComfyUI GPT Image 1 Node"
     DESCRIPTION = cleandoc(__doc__ or "")
-    API_NODE = True
+
 
     def api_call(
         self,
@@ -307,5 +307,5 @@ NODE_CLASS_MAPPINGS = {
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "GPTImage1Generate": "OpenAI GPT Image 1",
+    "GPTImage1Generate": "Ports OpenAI GPT Image 1",
 }
