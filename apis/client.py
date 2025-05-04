@@ -60,7 +60,7 @@ from pydantic import BaseModel
 from enum import Enum
 import json
 import requests
-from urllib.parse import urljoin,urlsplit
+from urllib.parse import urljoin
 
 T = TypeVar("T", bound=BaseModel)
 R = TypeVar("R", bound=BaseModel)
@@ -104,7 +104,6 @@ class ApiClient:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
-        print(f"[DEBUG] Headers: {headers}")
         return headers
 
     def request(
@@ -134,11 +133,9 @@ class ApiClient:
             requests.RequestException: If the request fails
         """
         url = urljoin(self.base_url, path)
-        print(f"[DEBUG] Request URL: {url},{self.base_url},{path}")
         self.check_auth_token(self.api_key)
         # Combine default headers with any provided headers
         request_headers = self.get_headers()
-        print(f"[DEBUG] request_headers: {request_headers}")
         if headers:
             request_headers.update(headers)
 
@@ -297,13 +294,22 @@ class SynchronousOperation(Generic[T, R]):
                     timeout=self.timeout,
                     verify_ssl=self.verify_ssl,
                 )
-                print(f"[DEBUG] Client: {self.auth_token}")
 
             # Convert request model to dict, but use None for EmptyRequest
-            request_dict = None if isinstance(self.request, EmptyRequest) else self.request.model_dump(exclude_none=True)
+            request_dict = (
+                None
+                if isinstance(self.request, EmptyRequest)
+                else self.request.model_dump(exclude_none=True)
+            )
+            if request_dict:
+                for key, value in request_dict.items():
+                    if isinstance(value, Enum):
+                        request_dict[key] = value.value
 
             # Debug log for request
-            logging.debug(f"[DEBUG] API Request: {self.endpoint.method.value} {self.endpoint.path}")
+            logging.debug(
+                f"[DEBUG] API Request: {self.endpoint.method.value} {self.endpoint.path}"
+            )
             logging.debug(f"[DEBUG] Request Data: {json.dumps(request_dict, indent=2)}")
             logging.debug(f"[DEBUG] Query Params: {self.endpoint.query_params}")
 

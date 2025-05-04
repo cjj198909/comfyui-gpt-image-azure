@@ -1,21 +1,21 @@
+import base64
 import io
+import math
 from inspect import cleandoc
 
-from comfy.utils import common_upscale
-from comfy.comfy_types.node_typing import IO, ComfyNodeABC, InputTypeDict
-from .apis import (
-    OpenAIImageGenerationRequest,
-    OpenAIImageEditRequest,
-    OpenAIImageGenerationResponse,
-)
-from .apis.client import ApiEndpoint, HttpMethod, SynchronousOperation
-
 import numpy as np
-from PIL import Image
 import requests
 import torch
-import math
-import base64
+from PIL import Image
+
+from comfy.comfy_types.node_typing import IO, ComfyNodeABC, InputTypeDict
+from comfy.utils import common_upscale
+from comfy_api_nodes.apis import (
+    OpenAIImageEditRequest,
+    OpenAIImageGenerationRequest,
+    OpenAIImageGenerationResponse,
+)
+from comfy_api_nodes.apis.client import ApiEndpoint, HttpMethod, SynchronousOperation
 
 
 def downscale_input(image):
@@ -39,29 +39,37 @@ def validate_and_cast_response(response):
     if not data or len(data) == 0:
         raise Exception("No images returned from API endpoint")
 
-    # Get base64 image data
-    image_url = data[0].url
-    b64_data = data[0].b64_json
-    if not image_url and not b64_data:
-        raise Exception("No image was generated in the response")
+    # Initialize list to store image tensors
+    image_tensors = []
 
-    if b64_data:
-        img_data = base64.b64decode(b64_data)
-        img = Image.open(io.BytesIO(img_data))
+    # Process each image in the data array
+    for image_data in data:
+        image_url = image_data.url
+        b64_data = image_data.b64_json
 
-    elif image_url:
-        img_response = requests.get(image_url)
-        if img_response.status_code != 200:
-            raise Exception("Failed to download the image")
-        img = Image.open(io.BytesIO(img_response.content))
+        if not image_url and not b64_data:
+            raise Exception("No image was generated in the response")
 
-    img = img.convert("RGBA")
+        if b64_data:
+            img_data = base64.b64decode(b64_data)
+            img = Image.open(io.BytesIO(img_data))
 
-    # Convert to numpy array, normalize to float32 between 0 and 1
-    img_array = np.array(img).astype(np.float32) / 255.0
+        elif image_url:
+            img_response = requests.get(image_url)
+            if img_response.status_code != 200:
+                raise Exception("Failed to download the image")
+            img = Image.open(io.BytesIO(img_response.content))
 
-    # Convert to torch tensor and add batch dimension
-    return torch.from_numpy(img_array)[None,]
+        img = img.convert("RGBA")
+
+        # Convert to numpy array, normalize to float32 between 0 and 1
+        img_array = np.array(img).astype(np.float32) / 255.0
+        img_tensor = torch.from_numpy(img_array)
+
+        # Add to list of tensors
+        image_tensors.append(img_tensor)
+
+    return torch.stack(image_tensors, dim=0)
 
 
 class GPTImage1Generate(ComfyNodeABC):
@@ -74,7 +82,7 @@ class GPTImage1Generate(ComfyNodeABC):
         pass
 
     @classmethod
-    def INPUT_TYPES(self) -> InputTypeDict:
+    def INPUT_TYPES(cls) -> InputTypeDict:
 
         return {
             "required": {
@@ -172,6 +180,14 @@ class GPTImage1Generate(ComfyNodeABC):
                         "tooltip": "Optional mask for inpainting (white areas will be replaced)",
                     },
                 ),
+                "moderation": (
+                    IO.COMBO,
+                    {
+                        "options": ["low", "auto"],
+                        "default": "low",
+                        "tooltip": "Moderation level",
+                    },
+                ),
             },
             # "hidden": {
             #     "auth_token": "AUTH_TOKEN_COMFY_ORG"
@@ -182,15 +198,11 @@ class GPTImage1Generate(ComfyNodeABC):
     FUNCTION = "api_call"
     CATEGORY = "Port ComfyUI GPT Image 1 Node"
     DESCRIPTION = cleandoc(__doc__ or "")
-    # API_NODE = True
+    API_NODE = True
 
-    @classmethod
     def api_call(
         self,
         prompt,
-        api_base=None,
-        auth_token=None,
-        model=None,
         seed=0,
         quality="low",
         background="opaque",
@@ -198,6 +210,10 @@ class GPTImage1Generate(ComfyNodeABC):
         mask=None,
         n=1,
         size="1024x1024",
+        moderation="low",
+        api_base=None,
+        auth_token=None,
+        model=None,
     ):
         # 如果model为空，则使用默认的模型
         if model is None:
@@ -270,6 +286,7 @@ class GPTImage1Generate(ComfyNodeABC):
                 n=n,
                 seed=seed,
                 size=size,
+                moderation=moderation,
             ),
             files=files if files else None,
             api_base=api_base,
