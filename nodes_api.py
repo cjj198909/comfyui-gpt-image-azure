@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 import math
 from inspect import cleandoc
 
@@ -7,7 +8,7 @@ import numpy as np
 import requests
 import torch
 from PIL import Image
-
+import os
 from comfy.comfy_types.node_typing import IO, ComfyNodeABC, InputTypeDict
 from comfy.utils import common_upscale
 from .apis import (
@@ -16,6 +17,16 @@ from .apis import (
     OpenAIImageGenerationResponse,
 )
 from .apis.client import ApiEndpoint, HttpMethod, SynchronousOperation
+
+import json
+
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+
+def read_user_config():
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 
 def downscale_input(image):
@@ -215,6 +226,12 @@ class GPTImage1Generate(ComfyNodeABC):
         auth_token=None,
         model=None,
     ):
+
+        config = read_user_config()
+        API_BASE = config.get("api_base", "")
+        AUTH_TOKEN = config.get("auth_token", "")
+
+
         # 如果model为空，则使用默认的模型
         if model is None:
             model = "gpt-image-1"
@@ -223,6 +240,15 @@ class GPTImage1Generate(ComfyNodeABC):
         img_binaries = []
         mask_binary = None
         files = []
+
+        if api_base is None or api_base == "":
+            # 打印 未找到api_base，尝试使用用户在设置中配置的值
+            print(f"No api_base found, trying to get it from settings.")
+            api_base = API_BASE
+
+        if auth_token is None or auth_token == "":
+            print(f"No auth_token found, trying to get it from settings.")
+            auth_token = AUTH_TOKEN
 
         if image is not None:
             path = "images/edits"
