@@ -3,11 +3,11 @@
 `comfyui-gpt-image` ports the official ComfyUI GPT-API node, adding support for customizable `api_base`, `auth_token`, and `model` settings.
 
 ### Features
-
-- Configure custom API endpoints (`api_base`)
-- Support for authentication tokens (`auth_token`)
-- Easily specify different GPT models (`model`)
-- Seamless integration with ComfyUI
+- 🎸 Support config auth_token, base_url in ComfyUI Settings(^1.2.0),
+- 🎸 Configure custom API endpoints (`api_base`)
+- 🎸 Support for authentication tokens (`auth_token`)
+- 🎸 Easily specify different GPT models (`model`)
+- 🎸 Seamless integration with ComfyUI
 
 ### Requirements
 
@@ -54,12 +54,17 @@ After restarting ComfyUI:
 - Configure your `api_base`, `auth_token`, and `model` parameters as needed.
 - Connect it to your workflow and start generating content with GPT!
 
-### Configuration
+In v1.2.0, you can configure it in the comfyui settings, as shown below:
 
-Parameter | Description
-api_base | Base URL of your GPT API endpoint.
-auth_token | Authentication token for secured API access.
-model | Model name to be used (e.g., `gpt-image-1`, `gpt-image-1-all`).
+![alt text](./example/comfyui-settings.png)
+
+> The configuration in the workflow node is used first. If it is empty, the ComfiyUI configuration is used.
+
+| Parameter   | Description                                           |
+|-------------|-------------------------------------------------------|
+| api_base    | Base URL of your GPT API endpoint.                   |
+| auth_token  | Authentication token for secured API access.         |
+| model       | Model name to be used (e.g., `gpt-image-1`, `gpt-image-1-all`). |
 
 ### Troubleshooting
 
