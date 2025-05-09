@@ -54,7 +54,7 @@ After restarting ComfyUI:
 - Configure your `api_base`, `auth_token`, and `model` parameters as needed.
 - Connect it to your workflow and start generating content with GPT!
 
-In v1.2.0, you can configure it in the comfyui settings, as shown below:
+In `v1.2.0`, support configure `api_base`, `auth_token` in the comfyui settings, as shown below:
 
 ![alt text](./example/comfyui-settings.png)
 
