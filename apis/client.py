@@ -61,6 +61,7 @@ from enum import Enum
 import json
 import requests
 from urllib.parse import urljoin
+import os
 
 T = TypeVar("T", bound=BaseModel)
 R = TypeVar("R", bound=BaseModel)
@@ -91,11 +92,13 @@ class ApiClient:
         api_key: Optional[str] = None,
         timeout: float = 30.0,
         verify_ssl: bool = True,
+        proxies: Optional[Dict[str, str]] = None,
     ):
         self.base_url = base_url
         self.api_key = api_key
         self.timeout = timeout
         self.verify_ssl = verify_ssl
+        self.proxies = proxies
 
     def get_headers(self) -> Dict[str, str]:
         """Get headers for API requests, including authentication if available"""
@@ -163,6 +166,7 @@ class ApiClient:
                     headers=request_headers,
                     timeout=self.timeout,
                     verify=self.verify_ssl,
+                    proxies=self.proxies,
                 )
             else:
                 response = requests.request(
@@ -173,6 +177,7 @@ class ApiClient:
                     headers=request_headers,
                     timeout=self.timeout,
                     verify=self.verify_ssl,
+                    proxies=self.proxies,
                 )
 
             # Raise exception for error status codes
@@ -288,11 +293,25 @@ class SynchronousOperation(Generic[T, R]):
             if client is None:
                 if self.api_base is None:
                     raise ValueError("Either client or api_base must be provided")
+
+
+                # 从系统环境变量获取代理配置
+                proxies = {}
+                if "HTTP_PROXY" in os.environ:
+                    proxies["http"] = os.environ["HTTP_PROXY"]
+                if "HTTPS_PROXY" in os.environ:
+                    proxies["https"] = os.environ["HTTPS_PROXY"]
+
+                # 如果没有配置代理，则设置为None
+                proxies = proxies if proxies else None
+
+                print(f"[DEBUG] Using Proxy: {proxies}")
                 client = ApiClient(
                     base_url=self.api_base,
                     api_key=self.auth_token,
                     timeout=self.timeout,
                     verify_ssl=self.verify_ssl,
+                    proxies=proxies
                 )
 
             # Convert request model to dict, but use None for EmptyRequest
