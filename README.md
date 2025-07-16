@@ -10,6 +10,8 @@ This project is a fork of [comfyui-gpt-image](https://github.com/lceric/comfyui-
 - 🎸 Support for authentication tokens (`auth_token`)
 - 🎸 Easily specify different GPT models (`model`)
 - 🎸 **Full Azure OpenAI support** with automatic detection
+- 🎸 **Multi-image editing support** - process multiple images simultaneously
+- 🎸 **Flexible mask handling** - single mask for all images or individual masks
 - 🎸 Enhanced error handling for both OpenAI and Azure OpenAI
 - 🎸 Seamless integration with ComfyUI
 
@@ -131,6 +133,38 @@ In `v1.2.0`, support configure `api_base`, `auth_token` in the comfyui settings,
 
 > 💡 **提示**: 首次使用建议先在ComfyUI设置中配置API信息，这样就不需要在每个节点中重复输入。
 
+### 🔧 多图编辑功能
+
+这个增强版本支持强大的多图编辑功能：
+
+#### **多图同时编辑**
+- 支持一次性处理多张图像
+- 可以使用单个遮罩应用到所有图像
+- 也可以为每张图像使用不同的遮罩
+
+#### **使用方法**:
+
+1. **单遮罩多图编辑**:
+   - 输入：多张图像 + 单个遮罩
+   - 效果：所有图像都使用相同的遮罩区域进行编辑
+   - 适用场景：批量处理相似位置的修改
+
+2. **多遮罩多图编辑**:
+   - 输入：多张图像 + 相同数量的遮罩
+   - 效果：每张图像使用对应的遮罩进行编辑
+   - 适用场景：精确控制每张图像的编辑区域
+
+#### **支持的操作**:
+- ✅ 批量图像生成（设置 `n` 参数）
+- ✅ 多图同时编辑（使用单个遮罩）
+- ✅ 多图个别编辑（使用多个遮罩）
+- ✅ 混合处理（部分图像使用遮罩，部分不使用）
+
+#### **注意事项**:
+- 遮罩数量必须为1（应用到所有图像）或等于图像数量
+- 所有图像和遮罩必须具有相同的尺寸
+- 多图编辑会消耗更多API配额
+
 ### Troubleshooting
 
 **Node not showing up?**
@@ -145,6 +179,12 @@ Make sure you installed all dependencies and restarted ComfyUI.
 - Check if your deployment name is correct (use deployment name, not model name).
 - Ensure your Azure OpenAI resource URL is correct (should end with `.openai.azure.com/`).
 - Verify the model is properly deployed in your Azure OpenAI resource.
+
+**Multi-image editing issues?**
+- Ensure mask count is 1 (single mask) or equals image count (individual masks).
+- Verify all images and masks have the same dimensions.
+- Check that your API provider supports multi-image operations.
+- For large batches, consider processing in smaller groups to avoid timeouts.
 
 **OpenAI vs Azure OpenAI configuration:**
 - OpenAI: `api_base` should be `https://api.openai.com/v1/`
@@ -162,9 +202,11 @@ This project is based on [comfyui-gpt-image](https://github.com/lceric/comfyui-g
 
 **Enhancements in this fork**:
 - Full Azure OpenAI API support with automatic detection
+- Multi-image editing support with flexible mask handling
 - Enhanced error handling for both OpenAI and Azure OpenAI services
 - Improved URL and authentication handling
 - Comprehensive documentation for Azure OpenAI integration
+- Support for batch processing and parallel image operations
 
 [ComfyUI](https://www.comfy.org/zh-cn/) - Powerful node-based UI for generative AI.
 

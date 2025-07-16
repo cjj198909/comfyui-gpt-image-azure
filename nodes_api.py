@@ -91,6 +91,14 @@ class GPTImage1Generate(ComfyNodeABC):
     """
     comfyui-gpt-image ports the official ComfyUI GPT-API node,
     adding support for customizable api_base, auth_token, and model settings.
+    
+    Features:
+    - Generate new images from text prompts
+    - Edit existing images with masks (inpainting)
+    - Multi-image support: process multiple images in a single operation
+    - Multi-mask support: use single mask for all images or individual masks
+    - Full Azure OpenAI integration with automatic detection
+    - Enhanced error handling and debugging
     """
 
     def __init__(self):
@@ -185,14 +193,14 @@ class GPTImage1Generate(ComfyNodeABC):
                     IO.IMAGE,
                     {
                         "default": None,
-                        "tooltip": "Optional reference image for image editing.",
+                        "tooltip": "Optional reference image(s) for image editing. Supports single or multiple images.",
                     },
                 ),
                 "mask": (
                     IO.MASK,
                     {
                         "default": None,
-                        "tooltip": "Optional mask for inpainting (white areas will be replaced)",
+                        "tooltip": "Optional mask for inpainting. Use single mask for all images or individual masks for each image. White areas will be replaced.",
                     },
                 ),
                 "moderation": (
@@ -296,26 +304,48 @@ class GPTImage1Generate(ComfyNodeABC):
                     files.append(("image[]", img_binary))
 
         if mask is not None:
-            if image.shape[0] != 1:
-                raise Exception("Cannot use a mask with multiple image")
             if image is None:
                 raise Exception("Cannot use a mask without an input image")
-            if mask.shape[1:] != image.shape[1:-1]:
+            
+            batch_size = image.shape[0]
+            
+            # Support both single mask for all images and individual masks for each image
+            if mask.shape[0] == 1 and batch_size > 1:
+                # Single mask applied to all images
+                print(f"Using single mask for {batch_size} images")
+                mask_batch = mask.repeat(batch_size, 1, 1)
+            elif mask.shape[0] == batch_size:
+                # Individual mask for each image
+                print(f"Using individual masks for {batch_size} images")
+                mask_batch = mask
+            else:
+                raise Exception(f"Mask batch size ({mask.shape[0]}) must be 1 or equal to image batch size ({batch_size})")
+            
+            # Check mask and image dimensions match
+            if mask_batch.shape[1:] != image.shape[1:-1]:
                 raise Exception("Mask and Image must be the same size")
-            batch, height, width = mask.shape
-            rgba_mask = torch.zeros(height, width, 4, device="cpu")
-            rgba_mask[:, :, 3] = 1 - mask.squeeze().cpu()
+            
+            # Process each mask
+            for i in range(batch_size):
+                single_mask = mask_batch[i:i+1]
+                batch, height, width = single_mask.shape
+                rgba_mask = torch.zeros(height, width, 4, device="cpu")
+                rgba_mask[:, :, 3] = 1 - single_mask.squeeze().cpu()
 
-            scaled_mask = downscale_input(rgba_mask.unsqueeze(0)).squeeze()
+                scaled_mask = downscale_input(rgba_mask.unsqueeze(0)).squeeze()
 
-            mask_np = (scaled_mask.numpy() * 255).astype(np.uint8)
-            mask_img = Image.fromarray(mask_np)
-            mask_img_byte_arr = io.BytesIO()
-            mask_img.save(mask_img_byte_arr, format="PNG")
-            mask_img_byte_arr.seek(0)
-            mask_binary = mask_img_byte_arr
-            mask_binary.name = "mask.png"
-            files.append(("mask", mask_binary))
+                mask_np = (scaled_mask.numpy() * 255).astype(np.uint8)
+                mask_img = Image.fromarray(mask_np)
+                mask_img_byte_arr = io.BytesIO()
+                mask_img.save(mask_img_byte_arr, format="PNG")
+                mask_img_byte_arr.seek(0)
+                mask_binary = mask_img_byte_arr
+                mask_binary.name = f"mask_{i}.png"
+                
+                if batch_size == 1:
+                    files.append(("mask", mask_binary))
+                else:
+                    files.append(("mask[]", mask_binary))
 
         # Build the operation
         operation = SynchronousOperation(
