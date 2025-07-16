@@ -6,6 +6,9 @@ API Client Framework for api.comfy.org.
 This module provides a flexible framework for making API requests from ComfyUI nodes.
 It supports both synchronous and asynchronous API operations with proper type validation.
 
+Original: https://github.com/lceric/comfyui-gpt-image
+Enhanced with Azure OpenAI support
+
 Key Components:
 --------------
 1. ApiClient - Handles HTTP requests with authentication and error handling
@@ -105,7 +108,18 @@ class ApiClient:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
         if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+            # Detect if this is Azure OpenAI based on base_url
+            is_azure_openai = (
+                "azure.com" in self.base_url.lower() or 
+                "cognitiveservices.azure.com" in self.base_url.lower()
+            )
+            
+            if is_azure_openai:
+                # Azure OpenAI uses api-key header
+                headers["api-key"] = self.api_key
+            else:
+                # OpenAI official API uses Bearer token
+                headers["Authorization"] = f"Bearer {self.api_key}"
 
         return headers
 
@@ -135,7 +149,21 @@ class ApiClient:
         Raises:
             requests.RequestException: If the request fails
         """
-        url = urljoin(self.base_url, path)
+        # Build URL properly for different services
+        is_azure_openai = (
+            "azure.com" in self.base_url.lower() or 
+            "cognitiveservices.azure.com" in self.base_url.lower()
+        )
+        
+        if is_azure_openai:
+            # For Azure OpenAI, ensure base_url ends with / and path doesn't start with /
+            base_url = self.base_url.rstrip('/')
+            path = path.lstrip('/')
+            url = f"{base_url}/{path}"
+        else:
+            # For OpenAI official API, use standard urljoin
+            url = urljoin(self.base_url, path)
+            
         self.check_auth_token(self.api_key)
         # Combine default headers with any provided headers
         request_headers = self.get_headers()
@@ -195,6 +223,12 @@ class ApiClient:
         except requests.HTTPError as e:
             status_code = e.response.status_code if hasattr(e, "response") else None
             error_message = f"HTTP Error: {str(e)}"
+            
+            # Detect if this is Azure OpenAI for better error messages
+            is_azure_openai = (
+                "azure.com" in self.base_url.lower() or 
+                "cognitiveservices.azure.com" in self.base_url.lower()
+            )
 
             # Try to extract detailed error message from JSON response
             try:
@@ -213,14 +247,25 @@ class ApiClient:
             logging.debug(f"[DEBUG] API Error: {error_message} (Status: {status_code})")
             if hasattr(e, "response") and e.response.content:
                 logging.debug(f"[DEBUG] Response content: {e.response.content}")
+                
+            # Enhanced error messages for different status codes
             if status_code == 401:
-                error_message = "Unauthorized: Please login first to use this node."
-            if status_code == 402:
+                if is_azure_openai:
+                    error_message = "Unauthorized: Please check your Azure OpenAI API key and ensure it's valid."
+                else:
+                    error_message = "Unauthorized: Please login first to use this node."
+            elif status_code == 402:
                 error_message = "Payment Required: Please add credits to your account to use this node."
-            if status_code == 409:
+            elif status_code == 404:
+                if is_azure_openai:
+                    error_message = "Resource not found: Please check your Azure OpenAI deployment name and ensure the model is properly deployed."
+                else:
+                    error_message = "Resource not found: Please check your API endpoint and model name."
+            elif status_code == 409:
                 error_message = "There is a problem with your account. Please contact support@comfy.org. "
-            if status_code == 429:
+            elif status_code == 429:
                 error_message = "Rate Limit Exceeded: Please try again later."
+            
             raise Exception(error_message)
 
         # Parse and return JSON response
@@ -330,14 +375,27 @@ class SynchronousOperation(Generic[T, R]):
                 f"[DEBUG] API Request: {self.endpoint.method.value} {self.endpoint.path}"
             )
             logging.debug(f"[DEBUG] Request Data: {json.dumps(request_dict, indent=2)}")
-            logging.debug(f"[DEBUG] Query Params: {self.endpoint.query_params}")
+            
+            # Prepare query parameters
+            query_params = self.endpoint.query_params or {}
+            
+            # Add API version for Azure OpenAI
+            is_azure_openai = (
+                "azure.com" in self.api_base.lower() or 
+                "cognitiveservices.azure.com" in self.api_base.lower()
+            )
+            
+            if is_azure_openai and "api-version" not in query_params:
+                query_params["api-version"] = "2024-02-15-preview"
+            
+            logging.debug(f"[DEBUG] Query Params: {query_params}")
 
             # Make the request
             resp = client.request(
                 method=self.endpoint.method.value,
                 path=self.endpoint.path,
                 json=request_dict,
-                params=self.endpoint.query_params,
+                params=query_params,
                 files=self.files,
             )
 

@@ -20,6 +20,10 @@ from .apis.client import ApiEndpoint, HttpMethod, SynchronousOperation
 
 import json
 
+# This file is based on comfyui-gpt-image by lceric
+# Original: https://github.com/lceric/comfyui-gpt-image
+# Enhanced with Azure OpenAI support
+
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
 def read_user_config():
@@ -235,8 +239,28 @@ class GPTImage1Generate(ComfyNodeABC):
         # 如果model为空，则使用默认的模型
         if model is None:
             model = "gpt-image-1"
-        path = "images/generations"
-        request_class = OpenAIImageGenerationRequest
+        
+        # Detect if this is Azure OpenAI
+        is_azure_openai = (
+            api_base and (
+                "azure.com" in api_base.lower() or 
+                "cognitiveservices.azure.com" in api_base.lower()
+            )
+        )
+        
+        # Set path and request class based on operation type and service
+        if image is not None:
+            request_class = OpenAIImageEditRequest
+            if is_azure_openai:
+                path = f"openai/deployments/{model}/images/edits"
+            else:
+                path = "images/edits"
+        else:
+            request_class = OpenAIImageGenerationRequest
+            if is_azure_openai:
+                path = f"openai/deployments/{model}/images/generations"
+            else:
+                path = "images/generations"
         img_binaries = []
         mask_binary = None
         files = []
@@ -251,9 +275,6 @@ class GPTImage1Generate(ComfyNodeABC):
             auth_token = AUTH_TOKEN
 
         if image is not None:
-            path = "images/edits"
-            request_class = OpenAIImageEditRequest
-
             batch_size = image.shape[0]
 
             for i in range(batch_size):
